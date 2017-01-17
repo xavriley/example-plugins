@@ -1,3 +1,21 @@
+# WIP installing Soundpipe
+
+```
+cd 02-MySaw
+ln -s /Users/xriley/Projects/Soundpipe Soundpipe
+cd ~/Application\ Support/Supercollider/Extensions
+ln -s /Users/xriley/Projects/example-plugins
+```
+
+Todo
+
+-[ ] Make Soundpipe a git submodule, add warnings if not found etc.
+-[ ] Rename MySaw to PadSynth and document it
+-[ ] Work out which args to add
+-[ ] Implement other Soundpipe modules (if they aren't already well served elsewhere in SuperCollider
+-[ ] Prune the list of files being pulled in for compilation
+
+
 # SuperCollider Example Plugins
 
 This repository demonstrates how to write UGens for [SuperCollider](https://github.com/supercollider/supercollider) using a series of examples. Custom UGens are packaged in server plugins. Plugins are not to be confused with quarks, which are libraries for the language.
