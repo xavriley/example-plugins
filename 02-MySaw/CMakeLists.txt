@@ -1,11 +1,28 @@
 cmake_minimum_required (VERSION 2.8)
 set(PROJECT "MySaw")
+set(SOUNDPIPEDIR ${CMAKE_CURRENT_SOURCE_DIR}/Soundpipe)
 project (${PROJECT})
+
+# Include libsndfile
+set(SNDFILEDIR /usr/local/Cellar/libsndfile/1.0.26)
+include_directories(${SNDFILEDIR}/include)
+link_directories(${SNDFILEDIR}/lib)
+
+#if(CPP11 AND NOT(SNDFILE MATCHES -NOTFOUND) )
+#  BUILD_PLUGIN("sndfile")
+#endif()
+
+include_directories(${SOUNDPIPEDIR})
+include_directories(${SOUNDPIPEDIR}/h)
+include_directories(${SOUNDPIPEDIR}/modules)
+
+file(GLOB SoundpipeLibs "${SOUNDPIPEDIR}/lib/*")
+include_directories(${SoundpipeLibs})
+link_directories(${SoundpipeLibs})
 
 include_directories(${SC_PATH}/include/plugin_interface)
 include_directories(${SC_PATH}/include/common)
 include_directories(${SC_PATH}/common)
-
 
 set(CMAKE_SHARED_MODULE_PREFIX "")
 if(APPLE OR WIN32)
@@ -66,4 +83,24 @@ if(MINGW)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mstackrealign")
 endif()
 
-add_library(${PROJECT} MODULE MySaw.cpp)
+# Optional if you don't want to use the embedded kissftw
+# find_package(fftw3f)
+
+file(GLOB SoundpipeSources "${SOUNDPIPEDIR}/modules/*.c")
+file(GLOB UnneededSoundpipeSources "${SOUNDPIPEDIR}/modules/jack.c"
+  "${SOUNDPIPEDIR}/modules/mincer.c"
+  "${SOUNDPIPEDIR}/modules/conv.c"
+  "${SOUNDPIPEDIR}/modules/ptrack.c"
+  "${SOUNDPIPEDIR}/modules/diskin.c"
+  #"${SOUNDPIPEDIR}/modules/ftbl.c"
+  "${SOUNDPIPEDIR}/modules/scrambler.c"
+  "${SOUNDPIPEDIR}/modules/paulstretch.c"
+  #"${SOUNDPIPEDIR}/modules/fftwrapper.c"
+  "${SOUNDPIPEDIR}/modules/nsmp.c"
+  )
+list(REMOVE_ITEM SoundpipeSources ${UnneededSoundpipeSources})
+add_library(${PROJECT} MODULE ${PROJECT}.cpp ${SoundpipeSources} ${SoundpipeLibs})
+# This links MySaw against libsndfile
+target_link_libraries(${PROJECT} sndfile)
+target_link_libraries(${PROJECT} kiss_fft.o)
+target_link_libraries(${PROJECT} kiss_fftr.o)
