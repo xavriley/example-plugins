@@ -131,32 +131,16 @@ void MySaw_next_a(MySaw *unit, int inNumSamples)
     // get the pointer to the input buffer
     float *freq = IN(0);
 
-    // get phase and freqmul constant from struct and store it in a
-    // local variable.
-    // The optimizer will cause them to be loaded it into a register.
-    float freqmul = unit->mFreqMul;
-    double phase = unit->mPhase;
-
     // perform a loop for the number of samples in the control period.
     // If this unit is audio rate then inNumSamples will be 64 or whatever
     // the block size is. If this unit is control rate then inNumSamples will
     // be 1.
     for (int i=0; i < inNumSamples; ++i)
     {
-        // out must be written last for in place operation
-        float z = phase;
-        phase += freq[i] * freqmul;
-
-        // these if statements wrap the phase a +1 or -1.
-        if (phase >= 1.f) phase -= 2.f;
-        else if (phase <= -1.f) phase += 2.f;
-
         // write the output
-        out[i] = z;
+        out[i] = unit->ud.ft->tbl[unit->sp->pos % unit->ud.ft->size];
+        unit->sp->pos++;
     }
-
-    // store the phase back to the struct
-    unit->mPhase = phase;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -174,34 +158,16 @@ void MySaw_next_k(MySaw *unit, int inNumSamples)
     // The optimizer will cause it to be loaded it into a register.
     double phase = unit->mPhase;
 
-		// sp_process sets up a wav file
-		// and then writes floats to it
-		// The last argument here is the callback function to use
-		sp_process(unit->sp, &unit->ud, process);
-
-    // since the frequency is not changing then we can simplify the loops
-    // by separating the cases of positive or negative frequencies.
-    // This will make them run faster because there is less code inside the loop.
-    if (freq >= 0.f) {
-        // positive frequencies
-        for (int i=0; i < inNumSamples; ++i)
-        {
-            out[i] = phase;
-            phase += freq;
-            if (phase >= 1.f) phase -= 2.f;
-        }
-    } else {
-        // negative frequencies
-        for (int i=0; i < inNumSamples; ++i)
-        {
-            out[i] = phase;
-            phase += freq;
-            if (phase <= -1.f) phase += 2.f;
-        }
+    // perform a loop for the number of samples in the control period.
+    // If this unit is audio rate then inNumSamples will be 64 or whatever
+    // the block size is. If this unit is control rate then inNumSamples will
+    // be 1.
+    for (int i=0; i < inNumSamples; ++i)
+    {
+    		// write the output
+    		out[i] = unit->ud.ft->tbl[unit->sp->pos % unit->ud.ft->size];
+    		unit->sp->pos++;
     }
-
-    // store the phase back to the struct
-    unit->mPhase = phase;
 }
 
 
