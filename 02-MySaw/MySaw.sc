@@ -1,9 +1,8 @@
-// without mul and add.
 MySaw : UGen {
-    *ar { arg freq = 440.0, iphase = 0.0;
-        ^this.multiNew('audio', freq, iphase)
+    *ar { arg freq = 440.0, bw = 40.0, mul = 1.0;
+        ^this.multiNew('audio', freq, bw, mul)
     }
-    *kr { arg freq = 440.0, iphase = 0.0;
-        ^this.multiNew('control', freq, iphase)
+    *kr { arg freq = 440.0, bw = 40.0, mul = 1.0;
+        ^this.multiNew('control', freq, bw, mul)
     }
 }

@@ -36,23 +36,19 @@ typedef struct user_data {
 // declare struct to hold unit generator state
 struct MySaw : public Unit
 {
-		double mPhase; // phase of the oscillator, from -1 to 1.
-		float mFreqMul; // a constant for multiplying frequency
-		UserData ud;
-		sp_data *sp;
+  float freq;
+  float bw;
+  float mul;
+	UserData ud;
+	sp_data *sp;
 };
 
 // declare unit generator functions
 static void MySaw_next_a(MySaw *unit, int inNumSamples);
 static void MySaw_next_k(MySaw *unit, int inNumSamples);
 static void MySaw_Ctor(MySaw* unit);
+static void MySaw_Dtor(MySaw* unit);
 
-
-void process(sp_data *sp, void *udata) {
-		UserData* ud = (UserData*)udata;
-		//sp->out = ud->ft->tbl[sp->pos % ud->ft->size];
-		sp_osc_compute(sp, ud->osc, NULL, &sp->out[0]);
-}
 
 //////////////////////////////////////////////////////////////////
 
@@ -84,10 +80,9 @@ void MySaw_Ctor(MySaw* unit)
     sp_osc_create(&unit->ud.osc);
 
 		// 2. initialize the unit generator state variables.
-		// initialize a constant for multiplying the frequency
-		unit->mFreqMul = 2.0 * SAMPLEDUR;
-		// get initial phase of oscillator
-		unit->mPhase = IN0(1);
+    unit->freq = IN0(0);
+    unit->bw   = IN0(1);
+    unit->mul   = IN0(2);
 
     unit->sp->sr = SAMPLERATE;
     //sp->len = ud.ft->size;
@@ -104,13 +99,13 @@ void MySaw_Ctor(MySaw* unit)
     }
 
     /* Discovered empirically. multiply frequency by this constant. */
-    unit->ud.fc = 1 / (6.0 * 440);
+    unit->ud.fc = 1 / (6.0 * unit->freq);
 
-    sp_gen_padsynth(unit->sp, unit->ud.ft, unit->ud.amps, sp_midi2cps(60.0), 40.0);
+    sp_gen_padsynth(unit->sp, unit->ud.ft, unit->ud.amps, unit->freq, unit->bw);
 
     sp_osc_init(unit->sp, unit->ud.osc, unit->ud.ft, 0.0);
-    unit->ud.osc->freq = sp_midi2cps(70.0) * unit->ud.fc;
-    unit->ud.osc->amp = 1.0;
+    unit->ud.osc->freq = unit->freq * unit->ud.fc;
+    unit->ud.osc->amp = unit->mul;
 
     // 3. calculate one sample of output.
     MySaw_next_k(unit, 1);
@@ -129,7 +124,8 @@ void MySaw_next_a(MySaw *unit, int inNumSamples)
     float *out = OUT(0);
 
     // get the pointer to the input buffer
-    float *freq = IN(0);
+    unit->ud.osc->freq = unit->freq * unit->ud.fc;
+    unit->ud.osc->amp = unit->mul;
 
     // perform a loop for the number of samples in the control period.
     // If this unit is audio rate then inNumSamples will be 64 or whatever
@@ -152,11 +148,8 @@ void MySaw_next_k(MySaw *unit, int inNumSamples)
     float *out = OUT(0);
 
     // freq is control rate, so calculate it once.
-    float freq = IN0(0) * unit->mFreqMul;
-
-    // get phase from struct and store it in a local variable.
-    // The optimizer will cause it to be loaded it into a register.
-    double phase = unit->mPhase;
+    unit->ud.osc->freq = unit->freq * unit->ud.fc;
+    unit->ud.osc->amp = unit->mul;
 
     // perform a loop for the number of samples in the control period.
     // If this unit is audio rate then inNumSamples will be 64 or whatever
@@ -168,6 +161,13 @@ void MySaw_next_k(MySaw *unit, int inNumSamples)
     		out[i] = unit->ud.ft->tbl[unit->sp->pos % unit->ud.ft->size];
     		unit->sp->pos++;
     }
+}
+
+void MySaw_Dtor(MySaw* unit)
+{
+    sp_osc_destroy(&unit->ud.osc);
+    sp_ftbl_destroy(&unit->ud.amps);
+    sp_ftbl_destroy(&unit->ud.ft);
 }
 
 
